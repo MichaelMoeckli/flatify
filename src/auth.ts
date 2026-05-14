@@ -30,6 +30,42 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(ba, bb);
 }
 
+// In-memory per-IP rate limit for the credentials provider. Lives in the
+// serverless instance's memory, so each warm instance enforces its own counter
+// and cold-start churn slightly weakens the bound. Adequate for the 2-user
+// shared-password model; replace with Vercel KV / Upstash if the allowlist
+// grows or per-user passwords are introduced.
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const RATE_LIMIT_MAX_FAILURES = 5;
+const failureCounters = new Map<string, { count: number; resetAt: number }>();
+
+function getClientIp(request: Request | undefined): string {
+  if (!request) return "unknown";
+  const fwd = request.headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0]!.trim();
+  return request.headers.get("x-real-ip") ?? "unknown";
+}
+
+function isRateLimited(ip: string): boolean {
+  const entry = failureCounters.get(ip);
+  if (!entry || entry.resetAt <= Date.now()) return false;
+  return entry.count >= RATE_LIMIT_MAX_FAILURES;
+}
+
+function recordFailure(ip: string): void {
+  const now = Date.now();
+  const entry = failureCounters.get(ip);
+  if (!entry || entry.resetAt <= now) {
+    failureCounters.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+  } else {
+    entry.count += 1;
+  }
+}
+
+function clearFailures(ip: string): void {
+  failureCounters.delete(ip);
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   pages: { signIn: "/signin" },
@@ -39,35 +75,45 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(raw) {
-        const parsed = CredsSchema.safeParse(raw);
-        if (!parsed.success) throw new InvalidCredentials();
-        const { username, password } = parsed.data;
+      async authorize(raw, request) {
+        const ip = getClientIp(request as Request | undefined);
+        if (isRateLimited(ip)) throw new InvalidCredentials();
 
-        const shared = process.env.AUTH_SHARED_PASSWORD;
-        if (!shared) throw new InvalidCredentials();
-        if (!isUsernameAllowed(username)) throw new InvalidCredentials();
-        if (!safeEqual(password, shared)) throw new InvalidCredentials();
+        try {
+          const parsed = CredsSchema.safeParse(raw);
+          if (!parsed.success) throw new InvalidCredentials();
+          const { username, password } = parsed.data;
 
-        // Lazy-import Prisma so this module stays edge-safe when imported by proxy.ts.
-        const { prisma } = await import("@/lib/db");
+          const shared = process.env.AUTH_SHARED_PASSWORD;
+          if (!shared) throw new InvalidCredentials();
+          if (!isUsernameAllowed(username)) throw new InvalidCredentials();
+          if (!safeEqual(password, shared)) throw new InvalidCredentials();
 
-        const user = await prisma.user.upsert({
-          where: { username },
-          update: {},
-          create: {
-            username,
-            name: displayNameFor(username),
-            color: pickColorFor(username),
-          },
-        });
+          // Lazy-import Prisma so this module stays edge-safe when imported by proxy.ts.
+          const { prisma } = await import("@/lib/db");
 
-        return {
-          id: user.id,
-          name: user.name,
-          username: user.username,
-          color: user.color,
-        };
+          const user = await prisma.user.upsert({
+            where: { username },
+            update: {},
+            create: {
+              username,
+              name: displayNameFor(username),
+              color: pickColorFor(username),
+            },
+          });
+
+          clearFailures(ip);
+
+          return {
+            id: user.id,
+            name: user.name,
+            username: user.username,
+            color: user.color,
+          };
+        } catch (err) {
+          if (err instanceof InvalidCredentials) recordFailure(ip);
+          throw err;
+        }
       },
     }),
   ],
