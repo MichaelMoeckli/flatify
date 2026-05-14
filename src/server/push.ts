@@ -2,15 +2,22 @@ import "server-only";
 import webpush from "web-push";
 import { prisma } from "@/lib/db";
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT!,
-  process.env.VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!,
-);
-
 export type PushPayload = { title: string; body: string; url?: string };
 
+let vapidConfigured = false;
+function configureVapid(): boolean {
+  if (vapidConfigured) return true;
+  const subject = process.env.VAPID_SUBJECT;
+  const publicKey = process.env.VAPID_PUBLIC_KEY;
+  const privateKey = process.env.VAPID_PRIVATE_KEY;
+  if (!subject || !publicKey || !privateKey) return false;
+  webpush.setVapidDetails(subject, publicKey, privateKey);
+  vapidConfigured = true;
+  return true;
+}
+
 export async function notifyFlatmate(senderUserId: string, payload: PushPayload) {
+  if (!configureVapid()) return;
   const subs = await prisma.pushSubscription.findMany({
     where: { userId: { not: senderUserId } },
   });
