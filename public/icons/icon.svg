@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0f172a"/>
+  <g transform="translate(96 112)">
+    <rect x="0" y="0" width="320" height="220" rx="28" fill="#1e293b" stroke="#475569" stroke-width="6"/>
+    <rect x="32" y="36" width="120" height="32" rx="10" fill="#6366f1"/>
+    <rect x="32" y="84" width="200" height="22" rx="8" fill="#cbd5e1"/>
+    <rect x="32" y="118" width="170" height="22" rx="8" fill="#cbd5e1"/>
+    <rect x="32" y="152" width="100" height="22" rx="8" fill="#f59e0b"/>
+    <circle cx="252" cy="180" r="32" fill="#f59e0b"/>
+  </g>
+  <text x="256" y="412" font-family="system-ui, -apple-system, sans-serif" font-size="64" font-weight="700" fill="#f1f5f9" text-anchor="middle">Flatify</text>
+</svg>

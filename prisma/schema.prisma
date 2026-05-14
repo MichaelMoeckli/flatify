@@ -1,0 +1,124 @@
+// Flatify schema — 2-person flatmate app
+// Money: integer cents, never floats.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  name      String
+  color     String   @default("indigo") // "indigo" | "amber"
+  createdAt DateTime @default(now())
+
+  shoppingItemsCreated ShoppingItem[]    @relation("ShoppingCreator")
+  shoppingItemsChecked ShoppingItem[]    @relation("ShoppingChecker")
+  choresAssigned       Chore[]           @relation("ChoreAssignee")
+  choreCompletions     ChoreCompletion[]
+  expensesPaid         Expense[]
+  expenseShares        ExpenseShare[]
+  settlementsFrom      Settlement[]      @relation("SettlementFrom")
+  settlementsTo        Settlement[]      @relation("SettlementTo")
+  pinboardPosts        PinboardPost[]
+}
+
+// ---- App tables ----
+
+model ShoppingItem {
+  id            String    @id @default(cuid())
+  name          String
+  qty           String?
+  note          String?
+  checkedAt     DateTime?
+  checkedBy     User?     @relation("ShoppingChecker", fields: [checkedById], references: [id])
+  checkedById   String?
+  createdBy     User      @relation("ShoppingCreator", fields: [createdById], references: [id])
+  createdById   String
+  createdAt     DateTime  @default(now())
+
+  @@index([checkedAt, createdAt])
+  @@index([name])
+}
+
+model Chore {
+  id           String            @id @default(cuid())
+  name         String
+  points       Int               @default(5)
+  cadenceDays  Int               @default(7)
+  assignee     User              @relation("ChoreAssignee", fields: [assigneeId], references: [id])
+  assigneeId   String
+  rotates      Boolean           @default(true)
+  lastDoneAt   DateTime?
+  nextDueAt    DateTime
+  createdAt    DateTime          @default(now())
+  completions  ChoreCompletion[]
+
+  @@index([nextDueAt])
+}
+
+model ChoreCompletion {
+  id             String   @id @default(cuid())
+  chore          Chore    @relation(fields: [choreId], references: [id], onDelete: Cascade)
+  choreId        String
+  doneBy         User     @relation(fields: [doneById], references: [id])
+  doneById       String
+  doneAt         DateTime @default(now())
+  pointsAwarded  Int
+
+  @@index([doneById, doneAt])
+}
+
+model Expense {
+  id           String         @id @default(cuid())
+  description  String
+  amountCents  Int
+  paidBy       User           @relation(fields: [paidById], references: [id])
+  paidById     String
+  paidAt       DateTime       @default(now())
+  category     String?
+  splitMode    String         @default("EQUAL") // "EQUAL" | "CUSTOM"
+  createdAt    DateTime       @default(now())
+  shares       ExpenseShare[]
+
+  @@index([paidAt])
+}
+
+model ExpenseShare {
+  id           String   @id @default(cuid())
+  expense      Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  expenseId    String
+  user         User     @relation(fields: [userId], references: [id])
+  userId       String
+  amountCents  Int
+
+  @@unique([expenseId, userId])
+}
+
+model Settlement {
+  id           String   @id @default(cuid())
+  from         User     @relation("SettlementFrom", fields: [fromUserId], references: [id])
+  fromUserId   String
+  to           User     @relation("SettlementTo", fields: [toUserId], references: [id])
+  toUserId     String
+  amountCents  Int
+  paidAt       DateTime @default(now())
+  note         String?
+}
+
+model PinboardPost {
+  id        String   @id @default(cuid())
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  String
+  body      String   @db.Text
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([pinned, createdAt])
+}
