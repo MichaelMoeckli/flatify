@@ -9,6 +9,8 @@ export default auth((req) => {
     pathname === "/signin" ||
     pathname.startsWith("/api/auth") ||
     pathname === "/manifest.webmanifest" ||
+    pathname === "/sw.js" ||
+    pathname === "/sw.js.map" ||
     pathname.startsWith("/icons");
 
   if (!isAuthed && !isPublic) {

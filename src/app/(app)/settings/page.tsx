@@ -2,6 +2,7 @@ import { requireUser, signOut } from "@/auth";
 import { PageHeader } from "@/components/PageHeader";
 import { Avatar } from "@/components/Avatar";
 import { getBothUsers } from "@/lib/users";
+import { EnablePushButton } from "./EnablePushButton";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,10 @@ export default async function SettingsPage() {
               Your flatmate hasn&apos;t signed in yet. Share the URL and the shared password.
             </p>
           ) : null}
+        </div>
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
+          <div className="text-xs uppercase tracking-wide text-slate-500">Notifications</div>
+          <EnablePushButton />
         </div>
         <form action={signOutAction}>
           <button

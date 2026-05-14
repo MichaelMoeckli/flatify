@@ -7,6 +7,7 @@ import { requireUser } from "@/auth";
 import { getPartner, getBothUsers } from "@/lib/users";
 import { equalSplit, parseAmountToCents } from "@/lib/money";
 import { computeBalance } from "@/server/balance";
+import { notifyFlatmate } from "@/server/push";
 
 const ExpenseSchema = z.object({
   description: z.string().trim().min(1).max(200),
@@ -65,6 +66,11 @@ export async function createExpense(formData: FormData) {
       splitMode: parsed.data.splitMode,
       shares: { create: shares },
     },
+  });
+  await notifyFlatmate(me.id, {
+    title: "New expense",
+    body: `${me.name} added ${(totalCents / 100).toFixed(2)} for ${parsed.data.description}`,
+    url: "/expenses",
   });
   revalidatePath("/expenses");
   revalidatePath("/");

@@ -26,6 +26,7 @@ model User {
   settlementsFrom      Settlement[]      @relation("SettlementFrom")
   settlementsTo        Settlement[]      @relation("SettlementTo")
   pinboardPosts        PinboardPost[]
+  pushSubscriptions    PushSubscription[]
 }
 
 // ---- App tables ----
@@ -121,4 +122,16 @@ model PinboardPost {
   updatedAt DateTime @updatedAt
 
   @@index([pinned, createdAt])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

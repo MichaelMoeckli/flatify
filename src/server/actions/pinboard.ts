@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/auth";
+import { notifyFlatmate } from "@/server/push";
 
 const PostSchema = z.object({
   body: z.string().trim().min(1).max(2000),
@@ -15,6 +16,11 @@ export async function createPost(formData: FormData) {
   if (!parsed.success) return { ok: false, error: "Empty post" };
   await prisma.pinboardPost.create({
     data: { body: parsed.data.body, authorId: me.id },
+  });
+  await notifyFlatmate(me.id, {
+    title: `${me.name} posted to the pinboard`,
+    body: parsed.data.body.slice(0, 120),
+    url: "/pinboard",
   });
   revalidatePath("/pinboard");
   revalidatePath("/");

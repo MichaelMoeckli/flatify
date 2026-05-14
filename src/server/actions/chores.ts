@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/auth";
 import { getPartner } from "@/lib/users";
+import { notifyFlatmate } from "@/server/push";
 
 const CreateSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -21,7 +22,7 @@ function addDays(date: Date, days: number) {
 }
 
 export async function createChore(formData: FormData) {
-  await requireUser();
+  const me = await requireUser();
   const parsed = CreateSchema.safeParse({
     name: formData.get("name") ?? "",
     points: formData.get("points") ?? 5,
@@ -40,6 +41,14 @@ export async function createChore(formData: FormData) {
       rotates: parsed.data.rotates,
       nextDueAt: addDays(new Date(), parsed.data.cadenceDays),
     },
+  });
+  const assignedToPartner = parsed.data.assigneeId !== me.id;
+  await notifyFlatmate(me.id, {
+    title: assignedToPartner ? "You have a new chore" : "New chore",
+    body: assignedToPartner
+      ? `${me.name} assigned you “${parsed.data.name}”`
+      : `${me.name} added “${parsed.data.name}”`,
+    url: "/chores",
   });
   revalidatePath("/chores");
   revalidatePath("/");

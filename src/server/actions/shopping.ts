@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/auth";
+import { notifyFlatmate } from "@/server/push";
 
 const AddSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -27,6 +28,11 @@ export async function addShoppingItem(formData: FormData) {
       note: parsed.data.note || null,
       createdById: me.id,
     },
+  });
+  await notifyFlatmate(me.id, {
+    title: "New shopping item",
+    body: `${me.name} added “${parsed.data.name}”`,
+    url: "/shopping",
   });
   revalidatePath("/shopping");
   revalidatePath("/");
