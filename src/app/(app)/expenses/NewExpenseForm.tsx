@@ -53,7 +53,7 @@ export function NewExpenseForm({ users, myId }: { users: User[]; myId: string })
       />
       <div className="grid grid-cols-2 gap-2">
         <label className="text-xs space-y-1">
-          <span className="text-slate-500">Amount (€)</span>
+          <span className="text-slate-500">Amount (CHF)</span>
           <input
             name="amount"
             required
@@ -120,7 +120,7 @@ export function NewExpenseForm({ users, myId }: { users: User[]; myId: string })
       {splitMode === "CUSTOM" ? (
         <div className="grid grid-cols-2 gap-2">
           <label className="text-xs space-y-1">
-            <span className="text-slate-500">Payer share (€)</span>
+            <span className="text-slate-500">Payer share (CHF)</span>
             <input
               name="shareSelf"
               inputMode="decimal"
@@ -129,7 +129,7 @@ export function NewExpenseForm({ users, myId }: { users: User[]; myId: string })
             />
           </label>
           <label className="text-xs space-y-1">
-            <span className="text-slate-500">Other share (€)</span>
+            <span className="text-slate-500">Other share (CHF)</span>
             <input
               name="shareOther"
               inputMode="decimal"

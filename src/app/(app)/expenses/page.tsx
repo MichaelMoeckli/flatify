@@ -84,7 +84,7 @@ export default async function ExpensesPage() {
               {settlements.map((s) => (
                 <li key={s.id} className="flex items-center gap-3 px-3 py-3 bg-emerald-50/40 dark:bg-emerald-950/20">
                   <div className="h-8 w-8 shrink-0 grid place-items-center rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
-                    €→
+                    CHF→
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium">

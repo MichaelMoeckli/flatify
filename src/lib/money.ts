@@ -1,4 +1,4 @@
-const CURRENCY = "EUR";
+const CURRENCY = "CHF";
 const LOCALE = "de-CH";
 
 export function formatCents(cents: number): string {
